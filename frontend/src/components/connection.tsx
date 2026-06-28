@@ -5,13 +5,13 @@ function Connection() {
 
   const [connection, setConnection] = useState<boolean | null>(null)
   const [error, setError] = useState<string>("")
-
+  const [accountValue, setAccountValue] = useState<number>(0.0)
 
   useEffect(() => {
     const fetchStatus = async () => {
       try {
 
-        const res = await fetch("/api/tws/status");
+        const res = await fetch("/api/status");
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
 
@@ -24,7 +24,25 @@ function Connection() {
 
     }
 
+    const fetchAccountValue = async () => {
+      try {
+
+        const res = await fetch("/api/account/value");
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        setAccountValue(data.res)
+
+      } catch (err) {
+
+        setError((err as Error).message);
+      }
+
+    }
+
     fetchStatus()
+    fetchAccountValue()
   }, [])
 
   const statusLabel = () => {
@@ -36,6 +54,8 @@ function Connection() {
     <>
       <h1>Dashboard</h1>
       <p> TWS: {statusLabel()}</p>
+      <p> AccountValue: {accountValue}</p>
+
     </>
   )
 }

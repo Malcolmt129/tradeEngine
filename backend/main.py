@@ -1,21 +1,24 @@
 from fastapi import FastAPI
 
+from ibconnect import IBAPI
+
 app = FastAPI()
 
 
 #Create an object to interactive with IB TWS API
-
+ib_api = IBAPI()
 
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
 
 
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: str | None = None):
-    return {"item_id": item_id, "q": q}
-
-
-@app.get("/api/tws/status")
+@app.get("/api/status")
 def getConnectionStatus():
-    return {"res": True}
+    return {"res": ib_api.connected_flag}
+
+
+
+@app.get("/api/account/value")
+def getAccountValue():
+    return {"res": ib_api.getNetLiquidation()}
