@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 
-
-function Connection() {
+export default function Connection() {
 
   const [connection, setConnection] = useState<boolean | null>(null)
   const [error, setError] = useState<string>("")
@@ -17,9 +16,7 @@ function Connection() {
 
         setConnection(data.res)
       } catch (err) {
-
         setError((err as Error).message);
-
       }
 
     }
@@ -60,4 +57,3 @@ function Connection() {
   )
 }
 
-export default Connection

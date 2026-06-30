@@ -1,6 +1,7 @@
 from threading import Thread, Event
 from ibapi.client import EClient
 from ibapi.wrapper import EWrapper
+from ibapi.contract import Contract
 
 class IBAPI(EWrapper, EClient):
 
@@ -17,6 +18,8 @@ class IBAPI(EWrapper, EClient):
         self.nextReqID = 1
         self.net_liquidation = None
         self._net_liq_event = Event()
+        self.portfolio: list[dict] = []
+        self._portfolio_event = Event()
         
 
         self.connectApi()
@@ -50,6 +53,31 @@ class IBAPI(EWrapper, EClient):
         if key == "NetLiquidation":
             self.net_liquidation = float(val)
             self._net_liq_event.set()
+
+    def updatePortfolio(self, contract: Contract, position: float, 
+                        marketPrice: float, marketValue: float, 
+                        averageCost: float, unrealizedPNL: float,
+                        realizedPNL: float, accountName: str):
+
+        self.portfolio = [p for p in self.portfolio if p["symbol"] != contract.symbol]
+        self.portfolio.append({
+            "symbol": contract.symbol,
+            "secType": contract.secType,
+            "position": position,
+            "marketPrice": marketPrice,
+            "marketValue": marketValue,
+            "averageCost": averageCost,
+            "unrealizedPNL": unrealizedPNL,
+            "realizedPNL": realizedPNL,
+            "accountName": accountName,
+        })
+
+    def accountDownloadEnd(self, accountName: str):
+        self._portfolio_event.set()
+
+    def getPortfolio(self, timeout: float = 5.0) -> list[dict]:
+        self._portfolio_event.wait(timeout=timeout)
+        return self.portfolio
 
     def getNetLiquidation(self, timeout: float = 5.0) -> float | None:
         self._net_liq_event.wait(timeout=timeout)

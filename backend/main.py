@@ -22,3 +22,8 @@ def getConnectionStatus():
 @app.get("/api/account/value")
 def getAccountValue():
     return {"res": ib_api.getNetLiquidation()}
+
+
+@app.get("/api/account/portfolio")
+def getPortfolio():
+    return {"res": ib_api.getPortfolio()}
