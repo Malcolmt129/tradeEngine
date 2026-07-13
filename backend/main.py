@@ -1,13 +1,22 @@
-from fastapi import FastAPI
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from .ibconnect import IBAPI
 
-app = FastAPI()
+ib_api: IBAPI
 
 
-#Create an object to interactive with IB TWS API
-ib_api = IBAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global ib_api
+    ib_api = IBAPI()
+    yield
+    ib_api.disconnect()
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 
@@ -17,9 +26,11 @@ class OrderEntry(BaseModel):
     ticker: str
     exchange: str
     secType: str
+    quantity: int 
     price: float
     action: str
     orderType: str 
+    contractExpiry: str
 
 @app.get("/")
 def read_root():
@@ -43,5 +54,23 @@ def getPortfolio():
 
 
 @app.post("/api/order")
-def createOrder(order: OrderEntry):
-    pass
+def placeManualOrder(order: OrderEntry):
+
+    try:
+        result = ib_api.submitOrder(
+                ticker=order.ticker,
+                exchange=order.exchange,
+                secType=order.secType,
+                action=order.action,
+                orderType=order.orderType,
+                quantity=order.quantity,
+                price=order.price,
+                contractExpiry=order.contractExpiry
+                )
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+
+    if result["status"] == "Error":
+        raise HTTPException(status_code=400, detail=result)
+
+    return result
