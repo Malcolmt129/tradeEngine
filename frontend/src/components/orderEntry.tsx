@@ -1,7 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { useForm, SubmitHandler } from 'react-hook-form'
-
-
 type OrderStatus = {
   orderId: number
   status: string
@@ -17,16 +14,6 @@ type OrderError = {
   errorMessage: string
 }
 
-type Inputs = {
-  ticker: string
-  exchange: string
-  contractExpiry: string
-  quantity: number
-  price: number
-  action: string
-
-}
-
 export default function OrderEntry() {
 
   /* If you want conditional rendering, I guess you need these things to be
@@ -34,16 +21,17 @@ export default function OrderEntry() {
   */
   const [orderType, setOrderType] = useState('MKT')
   const [secType, setSecType] = useState('STK')
-  const {
-    register,
-    handleSubmit,
-    watch,
-    formstate: { errors },
-  } = useForm<Inputs>()
 
-  const onSubmit: SubmitHandler<Inputs> = (data) => console.log(data)
+  const [formData, setFormData] = useState({
+    //stuff that you need for the order
+    ticker: '',
+    exchange: '',
+    contractExpiry: '',
+    quantity: '',
+    price: '',
+    action: '',
 
-
+  })
   const [error, setError] = useState<string>("")
   const [orderStatus, setOrderStatus] = useState<OrderStatus | null>(null)
   const confirmationRef = useRef<HTMLDialogElement>(null)
@@ -96,7 +84,7 @@ export default function OrderEntry() {
   return (
     <>
       <h1>Order Entry</h1>
-      <form id="orderForm" onSubmit={handleSubmit(onSubmit)}>
+      <form id="orderForm" onSubmit={handleSubmit}>
 
         <label>Security Type:
           <select id="secType" value={secType} onChange={(e) => setSecType(e.target.value)}>
@@ -202,4 +190,3 @@ export default function OrderEntry() {
     </>
   )
 }
-
