@@ -1,16 +1,12 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-
+from contextlib import asynccontextmanager
 from . import historydb
 from .ibconnect import IBAPI
 
 app = FastAPI()
 
 
-<<<<<<< HEAD
-#Create an object to interactive with IB TWS API
-ib_api = IBAPI()
-=======
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global ib_api
@@ -21,7 +17,6 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
->>>>>>> formRefine
 
 
 # FastAPI automatically reads a JSON payload from request body and converts it to
@@ -30,17 +25,11 @@ class OrderEntry(BaseModel):
     ticker: str
     exchange: str
     secType: str
-<<<<<<< HEAD
-    price: float
-    action: str
-    orderType: str 
-=======
     quantity: int
     price: float
     action: str
     orderType: str
     contractExpiry: str
->>>>>>> formRefine
 
 
 @app.get("/")
@@ -97,10 +86,6 @@ def getHistoricalData(
 
 
 @app.post("/api/order")
-<<<<<<< HEAD
-def createOrder(order: OrderEntry):
-    pass
-=======
 def placeManualOrder(order: OrderEntry):
     try:
         result = ib_api.submitOrder(
@@ -120,4 +105,3 @@ def placeManualOrder(order: OrderEntry):
         raise HTTPException(status_code=400, detail=result)
 
     return result
->>>>>>> formRefine

@@ -3,8 +3,6 @@ from threading import Thread, Event
 from ibapi.client import EClient
 from ibapi.wrapper import EWrapper
 from ibapi.contract import Contract
-<<<<<<< HEAD
-=======
 from ibapi.order import Order
 from ibapi.common import BarData
 
@@ -20,7 +18,6 @@ class myImpl_Order:
     price: float
     contractExpiry: str
 
->>>>>>> formRefine
 
 class IBAPI(EWrapper, EClient):
 
@@ -39,9 +36,6 @@ class IBAPI(EWrapper, EClient):
         self._net_liq_event = Event()
         self.portfolio: list[dict] = []
         self._portfolio_event = Event()
-<<<<<<< HEAD
-        
-=======
 
         self._order_events: dict[int, Event] = {}
         self._order_results: dict[int, dict] = {}
@@ -51,7 +45,6 @@ class IBAPI(EWrapper, EClient):
 
         self.timeout: float = 5.0
         self.historical_timeout: float = 30.0
->>>>>>> formRefine
 
         self.connectApi()
 
@@ -77,10 +70,6 @@ class IBAPI(EWrapper, EClient):
 
     def run_loop(self):
         self.run()
-<<<<<<< HEAD
-   
-    
-=======
 
     def error(self, reqId, errorCode, errorString):
         print(f"[Error] reqId={reqId} code={errorCode} msg={errorString}")
@@ -122,42 +111,11 @@ class IBAPI(EWrapper, EClient):
             self._order_events[orderId].set()
 
     # API function
->>>>>>> formRefine
     def updateAccountValue(self, key: str, val: str, currency: str, accountName: str):
         if key == "NetLiquidation":
             self.net_liquidation = float(val)
             self._net_liq_event.set()
 
-<<<<<<< HEAD
-    def updatePortfolio(self, contract: Contract, position: float, 
-                        marketPrice: float, marketValue: float, 
-                        averageCost: float, unrealizedPNL: float,
-                        realizedPNL: float, accountName: str):
-
-        self.portfolio = [p for p in self.portfolio if p["symbol"] != contract.symbol]
-        self.portfolio.append({
-            "symbol": contract.symbol,
-            "secType": contract.secType,
-            "position": position,
-            "marketPrice": marketPrice,
-            "marketValue": marketValue,
-            "averageCost": averageCost,
-            "unrealizedPNL": unrealizedPNL,
-            "realizedPNL": realizedPNL,
-            "accountName": accountName,
-        })
-
-    def accountDownloadEnd(self, accountName: str):
-        self._portfolio_event.set()
-
-    def getPortfolio(self, timeout: float = 5.0) -> list[dict]:
-        self._portfolio_event.wait(timeout=timeout)
-        return self.portfolio
-
-    def getNetLiquidation(self, timeout: float = 5.0) -> float | None:
-        self._net_liq_event.wait(timeout=timeout)
-        return self.net_liquidation
-=======
     # API function
     def updatePortfolio(
         self,
@@ -328,4 +286,3 @@ class IBAPI(EWrapper, EClient):
         self._historical_events.pop(reqId, None)
 
         return self._historical_data.pop(reqId, [])
->>>>>>> formRefine
