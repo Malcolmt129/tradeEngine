@@ -1,8 +1,11 @@
 from dataclasses import dataclass
 from threading import Thread, Event
+from enum import Enum
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from ibapi.client import EClient
 from ibapi.wrapper import EWrapper
-from ibapi.contract import Contract
+from ibapi.contract import Contract, ContractDetails
 from ibapi.order import Order
 from ibapi.common import BarData
 
@@ -17,6 +20,9 @@ class myImpl_Order:
     quantity: int
     price: float
     contractExpiry: str
+
+
+# class futuresExpiry(Enum):
 
 
 class IBAPI(EWrapper, EClient):
@@ -42,6 +48,9 @@ class IBAPI(EWrapper, EClient):
 
         self._historical_events: dict[int, Event] = {}
         self._historical_data: dict[int, list[dict]] = {}
+
+        self._contract_events: dict[int, Event] = {}
+        self._contract_data: dict[int, list[dict]] = {}
 
         self.timeout: float = 5.0
         self.historical_timeout: float = 30.0
@@ -242,12 +251,12 @@ class IBAPI(EWrapper, EClient):
         ticker: str,
         exchange: str,
         secType: str,
+        contractExpiry: str = "",
         endDateTime: str = "",
         duration: str = "1 Y",
         barSize: str = "1 day",
         whatToShow: str = "TRADES",
         useRTH: bool = True,
-        contractExpiry: str = "",
     ) -> list[dict]:
 
         if self.nextReqID is None:
@@ -256,15 +265,22 @@ class IBAPI(EWrapper, EClient):
         reqId = self.nextReqID
         self.nextReqID += 1
 
-        contract = Contract()
-        contract.symbol = ticker
-        contract.secType = secType
-        contract.exchange = exchange
-        contract.currency = "USD"
+        if secType == "FUT":
 
-        if contract.secType == "FUT":
+            contract = Contract()
+            contract.symbol = ticker
+            contract.secType = secType
+            contract.exchange = exchange
             contract.lastTradeDateOrContractMonth = contractExpiry
+            contract.currency = "USD"
+        else:
+            contract = Contract()
+            contract.symbol = ticker
+            contract.secType = secType
+            contract.exchange = exchange
+            contract.currency = "USD"
 
+        print(endDateTime)
         event = Event()
         self._historical_events[reqId] = event
         self._historical_data[reqId] = []
@@ -286,3 +302,64 @@ class IBAPI(EWrapper, EClient):
         self._historical_events.pop(reqId, None)
 
         return self._historical_data.pop(reqId, [])
+
+    # API Function
+    def contractDetails(self, reqId: int, contractDetails: ContractDetails):
+
+        self._contract_data.setdefault(reqId, []).append(
+            {
+                "conId": contractDetails.contract.conId,
+                "symbol": contractDetails.contract.symbol,
+                "localsymbol": contractDetails.contract.localSymbol,
+                "exchange": contractDetails.contract.exchange,
+                "lastTradeDateOrContractMonth": contractDetails.contract.lastTradeDateOrContractMonth,
+            }
+        )
+
+    def getFutures(self, startDate: str, endDate: str, contractSymbol: str):
+
+        # according to TWS API docs, this is the minimum needed for the request
+        reqId = self.nextReqID
+        self.nextReqID += 1
+
+        contract = Contract()
+        contract.symbol = contractSymbol
+        contract.secType = "FUT"
+        contract.exchange = "CME"
+        contract.currency = "USD"
+        contract.includeExpired = True
+
+        event = Event()
+        self._contract_events[reqId] = event
+
+        self.reqContractDetails(reqId, contract)
+        event.wait(timeout=self.timeout)
+        self._contract_events.pop(reqId, None)
+
+        futuresData = self._contract_data.pop(reqId, [])
+        futureTradeData = {}
+        for sym in futuresData:
+
+            eastern_dt = datetime.strptime(
+                sym["lastTradeDateOrContractMonth"] + " 11:59:59", "%Y%m%d %H:%M:%S"
+            ).replace(tzinfo=ZoneInfo("US/Eastern"))
+            tradeDate = eastern_dt.astimezone(ZoneInfo("UTC")).strftime(
+                "%Y%m%d-%H:%M:%S"
+            )
+
+            data = self.getHistoricalData(
+                sym["symbol"],
+                sym["exchange"],
+                "FUT",
+                contractExpiry=sym["lastTradeDateOrContractMonth"],
+                endDateTime=tradeDate,
+            )
+
+            futureTradeData[sym["localsymbol"]] = data
+
+        return futureTradeData
+
+    # API Function
+    def contractDetailsEnd(self, reqId: int):
+        if reqId in self._contract_events:
+            self._contract_events[reqId].set()

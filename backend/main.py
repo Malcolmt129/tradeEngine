@@ -10,7 +10,6 @@ app = FastAPI()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global ib_api
-    historydb.init_db()
     ib_api = IBAPI()
     yield
     ib_api.disconnect()
@@ -104,4 +103,17 @@ def placeManualOrder(order: OrderEntry):
     if result["status"] == "Error":
         raise HTTPException(status_code=400, detail=result)
 
+    return result
+
+
+@app.get("/scratch/getHistoricalFutures")
+def getHistoricalFutures():
+
+    try:
+        result = ib_api.getFutures("start", "end", "MES")
+        for key, value in result.items():
+            historydb.save_bars(key, "FUT", "CME", "1D", value)
+
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e))
     return result
